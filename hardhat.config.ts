@@ -40,11 +40,15 @@ module.exports = {
             accounts: [ process.env.MilkomedaTestnetDeployerPrivateKey,
                         process.env.MilkomedaTestnetUser1PrivateKey,
                         process.env.MilkomedaTestnetUser2PrivateKey ],
-            },
+        },
         milkomedaMainnet: {
             url: process.env.MilkomedaMainnetAPI,
             accounts: [ process.env.MilkomedaMainnetDeployerPrivateKey ],
-        }
+        },
+        algoMilkomedaTestnet: {
+            url: "https://rpc-devnet-algorand-rollup.a1.milkomeda.com",
+            accounts: [ process.env.MilkomedaA1TestnetDeployerPrivateKey ],
+        },
     }
 };
 
