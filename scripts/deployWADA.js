@@ -6,6 +6,16 @@ async function main() {
 
 
     console.log(`Operating in network ${hre.network.name}`)
+    if (hre.network.name == "milkomedaMainnet") {
+        wrappingContract = "WADA10";
+    } else if (hre.network.name == "milkomedaTestnet") {
+        wrappingContract = "WADA10";
+    } else if (hre.network.name == "algoMilkomedaTestnet") {
+        wrappingContract = "WALGO";
+    } else {
+        console.log("No parameters set for network", hre.network.name);
+        return;
+    }
 
     const [deployer] = await hre.ethers.getSigners();
 
@@ -16,10 +26,10 @@ async function main() {
     
     console.log("Account balance:", (await deployer.getBalance()).toString());
 
-    const WADAFactory = await ethers.getContractFactory("WADA10");
+    const WADAFactory = await ethers.getContractFactory(wrappingContract);
     const WADAInstance = await WADAFactory.deploy();
 
-    console.log("WADA address:", WADAInstance.address);
+    console.log(wrappingContract, "address:", WADAInstance.address);
     
     /* await sleep(120);
     await hre.run("verify:verify", {
