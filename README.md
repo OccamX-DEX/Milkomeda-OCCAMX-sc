@@ -16,7 +16,8 @@ npm install
 npm run test
 ```
 
-## Deployment### DEX
+## Deployment
+### DEX
 To initially deploy the dex, you need to create the factory and router contracts.
 
 For your own testing, you need to deploy the contract for wrapped HBAR. On Mainnet you can reuse the address of the existing contract.
