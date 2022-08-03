@@ -22,23 +22,23 @@ To initially deploy the dex, you need to create the factory and router contracts
 
 For your own testing, you need to deploy the contract for wrapped HBAR. On Mainnet you can reuse the address of the existing contract.
 ```
-npx hardhat run scripts/deployWHBAR.js --network hedera<Main|Test>net
+npx hardhat run scripts/deployWHBAR.js --network milkomeda<Main|Test>net
 ```
 
 First we deploy the factory and the project token
 ```
-npx hardhat run scripts/deployFactory.js --network hedera<Main|Test>net
-npx hardhat run scripts/deployProtocolToken.js --network hedera<Main|Test>net
+npx hardhat run scripts/deployFactory.js --network milkomeda<Main|Test>net
+npx hardhat run scripts/deployProtocolToken.js --network milkomeda<Main|Test>net
 ```
 And then the router after adjusting the WHBAR and factory address we just created:
 ```
-npx hardhat run scripts/deployRouter.js --network hedera<Main|Test>net
+npx hardhat run scripts/deployRouter.js --network milkomeda<Main|Test>net
 ```
 
 ### Pairs
 Users are going to create new pairs over the frontend. For testing you can use
 ```
-npx hardhat run scripts/deployPair.js --network hedera<Main|Test>net
+npx hardhat run scripts/deployPair.js --network milkomeda<Main|Test>net
 ```
 ### Zap contract
 First adjust the parameters in `scripts/deployZap.js` as needed.
