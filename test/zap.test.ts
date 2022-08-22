@@ -209,4 +209,16 @@ describe('Zap', () => {
 		await expect(zap.connect(user1).zapIn(pair12.address, minSwapAmount, coin1.address, inputAmount, staking3Ada.address))
 			.to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Zap: staking contract for wrong token'");
 	});
+
+	it('should estimateSwap correctly', async () => {
+		const inputAmount = utils.parseEther("0.01");
+		const minSwapAmount = utils.parseEther("0.009"); // half the input, times two for pool price, minus some slippage
+		await coin1.mint(user1.address, inputAmount);
+		await coin1.connect(user1).approve(zap.address, inputAmount);
+
+		const estimation = await zap.connect(user1).estimateSwap(pair12.address, coin1.address, inputAmount);
+
+		await expect(zap.connect(user1).zapIn(pair12.address, minSwapAmount, coin1.address, inputAmount, ethers.constants.AddressZero))
+			.to.emit(pair12, "Swap").withArgs(router.address, estimation["swapAmountIn"], 0, 0, estimation["swapAmountOut"], zap.address);
+	});
 });
