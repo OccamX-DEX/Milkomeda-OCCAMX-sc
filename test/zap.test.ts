@@ -221,4 +221,24 @@ describe('Zap', () => {
 		await expect(zap.connect(user1).zapIn(pair12.address, minSwapAmount, coin1.address, inputAmount, ethers.constants.AddressZero))
 			.to.emit(pair12, "Swap").withArgs(router.address, estimation["swapAmountIn"], 0, 0, estimation["swapAmountOut"], zap.address);
 	});
+
+	it('should fail to estimateSwap on low liquidity', async () => {
+		const coinFactory = await ethers.getContractFactory('MockCoin', deployer);
+		const coin4 = (await coinFactory.deploy('Four', '4')) as MockCoin;
+		const lowLiquidityA = utils.parseEther("0.000001");
+		const lowLiquidityB = utils.parseEther("0.00000000099");
+		await coin1.mint(deployer.address, lowLiquidityA);
+		await coin4.mint(deployer.address, lowLiquidityB);
+		await coin1.connect(deployer).approve(router.address, lowLiquidityA);
+		await coin4.connect(deployer).approve(router.address, lowLiquidityB);
+		await router.connect(deployer).addLiquidity(coin1.address, coin4.address, lowLiquidityA, lowLiquidityB, 0, 0, deployer.address, 1000000000000000);
+		const addressPair14 = await factory.getPair(coin1.address, coin4.address);
+		
+		const inputAmount = utils.parseEther("0.0001");
+		await coin1.mint(user1.address, inputAmount);
+		await coin1.connect(user1).approve(zap.address, inputAmount);
+
+		await expect(zap.connect(user1).estimateSwap(addressPair14, coin1.address, inputAmount))
+			.to.be.revertedWith("Zap: Liquidity pair reserves too low");
+	});
 });
