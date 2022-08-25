@@ -226,6 +226,7 @@ contract ZapOccamX {
 
         (uint256 reserveA, uint256 reserveB,) = pair.getReserves();
         (reserveA, reserveB) = isInputA ? (reserveA, reserveB) : (reserveB, reserveA);
+        require(reserveA > fullInvestmentIn, 'Zap: Liquidity pair reserves too low');
 
         swapAmountIn = _getSwapAmount(fullInvestmentIn, reserveA);
         swapAmountOut = router.getAmountOut(swapAmountIn, reserveA, reserveB);

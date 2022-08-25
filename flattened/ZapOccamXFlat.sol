@@ -868,6 +868,17 @@ interface IStaking {
 }
 
 
+// File contracts/interfaces/IWADA.sol
+
+pragma solidity ^0.6.0;
+
+interface IWADA {
+    function deposit() external payable;
+    function transfer(address to, uint value) external returns (bool);
+    function withdraw(uint) external;
+}
+
+
 // File contracts/libraries/Math.sol
 
 pragma solidity ^0.6.0;
@@ -914,11 +925,6 @@ pragma solidity 0.6.12; // chose this version to be compatible with the imported
 
 
 
-
-interface IWADA is IERC20 {
-    function deposit() external payable;
-    function withdraw(uint256 wad) external;
-}
 
 
 /**
@@ -1126,6 +1132,7 @@ contract ZapOccamX {
 
         (uint256 reserveA, uint256 reserveB,) = pair.getReserves();
         (reserveA, reserveB) = isInputA ? (reserveA, reserveB) : (reserveB, reserveA);
+        require(reserveA > fullInvestmentIn, 'Zap: Liquidity pair reserves too low');
 
         swapAmountIn = _getSwapAmount(fullInvestmentIn, reserveA);
         swapAmountOut = router.getAmountOut(swapAmountIn, reserveA, reserveB);

@@ -33,7 +33,7 @@
     "clickhouse": "^2.4.0",
     "dotenv": "^10.0.0",
     "ethereum-waffle": "^3.4.0",
-    "ethers": "^5.4.7",
+    "ethers": "5.6.1",
     "hardhat-contract-sizer": "^2.1.1",
     "mocha": "^8.3.0",
     "ts-node": "^9.1.1",
