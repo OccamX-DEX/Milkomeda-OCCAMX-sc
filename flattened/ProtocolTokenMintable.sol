@@ -799,7 +799,6 @@ abstract contract Ownable is Context {
 
 // File contracts/ProtocolToken.sol
 
-// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.6.0;
 
 
