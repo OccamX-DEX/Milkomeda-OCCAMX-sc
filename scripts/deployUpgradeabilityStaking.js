@@ -28,13 +28,13 @@ async function main() {
     } else if (hre.network.name == "milkomedaMainnet") {
         proxyOwner = "0x394195f788541166DFf932a828455a8a940d75d4";
         logicsOwner = deployer.address;
-        rewardsTokenAddress = "0xf0c73E6287867bAa4F865A17EE711ec989c78AC0";
-        stakingTokenAddress = "0x2d11793D1843973840A6e6781064a22fffe3FAba";
+        rewardsTokenAddress = "0xf0c73E6287867bAa4F865A17EE711ec989c78AC0"; // This should be OCX
+        stakingTokenAddress = "0xe0A8fec6Ae57d3634FD7D3571DeC53912729c991"; // TODO: put LT address here
         unstakingFeeRatio = 0;
         // !!! Check timelock for both unstaking fee and implemetation change
-        emissionStart = 1649872800;
-        firstCheckPoint = 1651082400;
-        rewardPerSecond = utils.parseEther("0.004571119302556900");
+        emissionStart = 1652292000; // TODO: update
+        firstCheckPoint = 1653501600; // TODO: update
+        rewardPerSecond = utils.parseEther("0.002493779144295280"); // TODO: set for each LM to deploy
         feeBurn = false;
     } else if (hre.network.name == "algoMilkomedaTestnet") {
         proxyOwner = deployer.address;
@@ -79,6 +79,7 @@ async function main() {
     const initializationData = getInputData("function initialize(address _rewardsToken, address _stakingToken, uint emissionStart, uint firstCheckPoint, uint _rewardPerSecond, address admin, bool _feeBurn, uint _unstakingFeeRatio)",
                                             "initialize",
                                             CONTRACT_ARGS);
+    console.log(`initialization data for validation: ${initializationData}`);
 
     const ProxyFactory = await hre.ethers.getContractFactory("UpgradeabilityProxy", deployer);
 
