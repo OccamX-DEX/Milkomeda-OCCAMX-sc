@@ -36,6 +36,17 @@ async function main() {
         firstCheckPoint = 1651082400;
         rewardPerSecond = utils.parseEther("0.004571119302556900");
         feeBurn = false;
+    } else if (hre.network.name == "algoMilkomedaTestnet") {
+        proxyOwner = deployer.address;
+        logicsOwner = deployer.address;
+        rewardsTokenAddress = "0x177c13E674b379fFad990bd1424926EeFab9300b";
+        stakingTokenAddress = "0x0E518a8C39EbAA88cb092454caF31C425e32Be43";
+        unstakingFeeRatio = 0;
+        // !!! Check timelock for both unstaking fee and implemetation change
+        emissionStart = 1649872800;
+        firstCheckPoint = 1651082400;
+        rewardPerSecond = utils.parseEther("0.004571119302556900");
+        feeBurn = false;
     }
         
 

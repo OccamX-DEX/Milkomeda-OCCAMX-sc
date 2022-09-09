@@ -12,7 +12,10 @@ async function main() {
     } else if (hre.network.name == "milkomedaMainnet") {
         factoryAddress = "0x2ef06A90b0E7Ae3ae508e83Ea6628a3987945460";
         WADAAddress = "0xAE83571000aF4499798d1e3b0fA0070EB3A3E3F9";
-    } 
+    } else if (hre.network.name == "algoMilkomedaTestnet") {
+        factoryAddress = "0xa4E0d03d258D617228A4fCc7823BF4e58377703D";
+        WADAAddress = "0xbB69A30ADA91380a63cffd51e9C02FabCd160290";
+    }
 
 
     console.log(`Operating in network ${hre.network.name}`)
