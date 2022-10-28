@@ -26,7 +26,7 @@ async function main() {
 
     const CollectorInstance = await ethers.getContractAt("Collector", collectorAddress);
 
-    const poolsToBB = ["0x97718Bb7c50Bbd69CEdAe8ef4ef6dBd3fbED2Be2"];
+    const poolsToBB = ["0xA4AD48A0b25460d31aE12291620fB063E1A6Db13"];
     
     for (const poolAddress of poolsToBB) {
         const poolInstance = await ethers.getContractAt("Pair", poolAddress);
