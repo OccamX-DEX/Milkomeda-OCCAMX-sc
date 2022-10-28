@@ -3,3 +3,5 @@ node_modules/
 artifacts/
 cache/
 typechain/
+
+.DS_Store
