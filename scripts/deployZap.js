@@ -24,6 +24,12 @@ async function main() {
         testPairAddress = "0x8578aBC9e5De03a96CEEc3339C7315735470Fd4F";
         testAdaAmount = utils.parseEther("0.001");
         testStakingAddr = ethers.constants.AddressZero;
+    } else if (hre.network.name == "algoMilkomedaTestnet") {
+        routerAddress = "0x3b70bEB2D1e0086775b4e41698Ccc1eB3B262853";
+        wAdaAddress = "0xbB69A30ADA91380a63cffd51e9C02FabCd160290";
+        testPairAddress = "0x0E518a8C39EbAA88cb092454caF31C425e32Be43";
+        testAdaAmount = utils.parseEther("0.001");
+        testStakingAddr = ethers.constants.AddressZero;
     } else {
         console.log("No parameters set for network", hre.network.name);
         return;
