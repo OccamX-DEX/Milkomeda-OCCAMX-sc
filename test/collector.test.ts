@@ -24,7 +24,7 @@ const hre = require('hardhat');
 chai.use(solidity);
 const { expect } = chai;
 
-describe('Zap', () => {
+describe('Collector', () => {
   let protocolCoin: MockCoin;
   let coin1: MockCoin;
   let coin2: MockCoin;
@@ -39,8 +39,9 @@ describe('Zap', () => {
   let PTWAdaPair: Pair;
   let router: Router02;
   let wADA: WETH9;
-    let staking: StakingImp;
-    let collector: Collector;
+  let staking: StakingImp;
+  let collector: Collector;
+  
 
   let deployer: SignerWithAddress;
   let user1: SignerWithAddress;
@@ -72,6 +73,18 @@ describe('Zap', () => {
     );
     factory = await factoryFactory.deploy(deployer.address);
     await factory.deployed();
+
+    // deploy collector and set it as fee getter of the DEX
+    const collectorFactory = await hre.ethers.getContractFactory(
+      'Collector',
+      deployer
+    );
+    collector = (await collectorFactory.deploy(
+      factory.address,
+      protocolCoin.address,
+      wADA.address
+    )) as Collector;
+    await factory.connect(deployer).setFeeTo(collector.address);
 
     const routerFactory = await hre.ethers.getContractFactory('Router02');
     router = await routerFactory.deploy(factory.address, wADA.address);
@@ -130,6 +143,7 @@ describe('Zap', () => {
         1000000000000000,
         { value: liquidityWAda }
       );
+
 
     await factory.createPair(coin2.address, protocolCoin.address);
     const addressTokenPTPair = await factory.getPair(
@@ -199,17 +213,11 @@ describe('Zap', () => {
       0
     );
 
-    // deploy collector and set it as fee getter of the DEX
-    const collectorFactory = await hre.ethers.getContractFactory(
-      'Collector',
-      deployer
-    );
-    collector = (await collectorFactory.deploy(
-      factory.address,
-      protocolCoin.address,
-      wADA.address
-    )) as Collector;
-      await factory.connect(deployer).setFeeTo(collector.address);
+    await collector.setStakingContract(staking.address);
+    await collector.connect(deployer).setLock(false);
+    await collector.connect(deployer).setBridge(coin2.address, protocolCoin.address);
+  });
+
 
   afterEach(async () => {
     // check that there is no protocol token after buy back from the collector SC
@@ -218,262 +226,255 @@ describe('Zap', () => {
 
   it('should construct the collector contract', async () => {
     expect(collector.address).to.properAddress;
+    expect(await collector.PToken()).to.be.equal(protocolCoin.address);
+    expect(await factory.feeTo()).to.be.eq(collector.address);
+    
   });
 
-      it('should collect fee from the token-token pair', async () => {
-      // make some swap from coin1 to coin2
-          await coin1.mint()
-    const inputAmount = utils.parseEther('0.01');
-    const minSwapAmount = utils.parseEther('0.009'); // half the input, times two for pool price, minus some slippage
-    await coin1.mint(user1.address, inputAmount);
-    await coin1.connect(user1).approve(zap.address, inputAmount);
+  it('should collect fee from the token-token pair', async () => {
+    // make a swap from coin1 to coin2
+    const swapAmount = utils.parseEther('10');
+    await coin1.mint(user1.address, swapAmount);
+    await coin1.connect(user1).approve(router.address, swapAmount);
 
-    await zap
-      .connect(user1)
-      .zapIn(
-        pair12.address,
-        minSwapAmount,
-        coin1.address,
-        inputAmount,
-        ethers.constants.AddressZero
-      );
-    expect(await pair12.balanceOf(user1.address)).to.be.gt(
-      utils.parseEther('0.007')
-    ); // receive some liquidity tokens
-  });
+    const path = [coin1.address, coin2.address];
 
-  it('should zap into token-token pair with other input', async () => {
-    const inputAmount = utils.parseEther('0.01');
-    const minSwapAmount = utils.parseEther('0.0023'); // half the input, half for pool price, minus some slippage
-    await coin2.mint(user1.address, inputAmount);
-    await coin2.connect(user1).approve(zap.address, inputAmount);
-
-    await zap
-      .connect(user1)
-      .zapIn(
-        pair12.address,
-        minSwapAmount,
-        coin2.address,
-        inputAmount,
-        ethers.constants.AddressZero
-      );
-    expect(await pair12.balanceOf(user1.address)).to.be.gt(
-      utils.parseEther('0.003')
-    ); // receive some liquidity tokens
-  });
-
-  it('should zap into wADA-token pair with ADA', async () => {
-    const inputAmount = utils.parseEther('0.1');
-    const minSwapAmount = utils.parseEther('0.13'); // half the input, three times for pool price, minus some slippage
-
-    await zap
-      .connect(user1)
-      .zapInADA(pair3Ada.address, minSwapAmount, ethers.constants.AddressZero, {
-        value: inputAmount,
-      });
-    expect(await pair3Ada.balanceOf(user1.address)).to.be.gt(
-      utils.parseEther('0.08')
-    ); // receive some liquidity tokens
-  });
-
-  it('should zap into wADA-token pair with token', async () => {
-    const inputAmount = utils.parseEther('0.1');
-    const minSwapAmount = utils.parseEther('0.015'); // half the input, a third for pool price, minus some slippage
-    await coin3.mint(user1.address, inputAmount);
-    await coin3.connect(user1).approve(zap.address, inputAmount);
-
-    await zap
-      .connect(user1)
-      .zapIn(
-        pair3Ada.address,
-        minSwapAmount,
-        coin3.address,
-        inputAmount,
-        ethers.constants.AddressZero
-      );
-    expect(await pair3Ada.balanceOf(user1.address)).to.be.gt(
-      utils.parseEther('0.002')
-    ); // receive some liquidity tokens
-  });
-
-  it('should fail to zap with too high slippage', async () => {
-    const inputAmount = utils.parseEther('0.01');
-    const minSwapAmount = utils.parseEther('0.00999'); // half the input, times two for pool price, minus too small slippage
-    await coin1.mint(user1.address, inputAmount);
-    await coin1.connect(user1).approve(zap.address, inputAmount);
-
-    await expect(
-      zap
-        .connect(user1)
-        .zapIn(
-          pair12.address,
-          minSwapAmount,
-          coin1.address,
-          inputAmount,
-          ethers.constants.AddressZero
-        )
-    ).to.be.revertedWith(
-      "VM Exception while processing transaction: reverted with reason string 'DEXRouter: INSUFFICIENT_OUTPUT_AMOUNT'"
-    );
-  });
-
-  it('should fail to zap with wrong input token', async () => {
-    const inputAmount = utils.parseEther('0.01');
-    const minSwapAmount = utils.parseEther('0.009'); // half the input, times two for pool price, minus too small slippage
-    await coin3.mint(user1.address, inputAmount);
-    await coin3.connect(user1).approve(zap.address, inputAmount);
-
-    await expect(
-      zap
-        .connect(user1)
-        .zapIn(
-          pair12.address,
-          minSwapAmount,
-          coin3.address,
-          inputAmount,
-          ethers.constants.AddressZero
-        )
-    ).to.be.revertedWith(
-      "VM Exception while processing transaction: reverted with reason string 'Zap: Input token not present in liquidity pair'"
-    );
-  });
-
-  it('should zap into token-token pair and stake liquidity', async () => {
-    const inputAmount = utils.parseEther('0.01');
-    const minSwapAmount = utils.parseEther('0.009'); // half the input, times two for pool price, minus some slippage
-    await coin1.mint(user1.address, inputAmount);
-    await coin1.connect(user1).approve(zap.address, inputAmount);
-
-    await zap
-      .connect(user1)
-      .zapIn(
-        pair12.address,
-        minSwapAmount,
-        coin1.address,
-        inputAmount,
-        staking12.address
-      );
-    expect(await staking12.stakes(user1.address)).to.be.gt(
-      utils.parseEther('0.007')
-    );
-  });
-
-  it('should zap into wADA-token pair with ADA and stake liquidity', async () => {
-    const inputAmount = utils.parseEther('0.1');
-    const minSwapAmount = utils.parseEther('0.13'); // half the input, three times for pool price, minus some slippage
-
-    await zap
-      .connect(user1)
-      .zapInADA(pair3Ada.address, minSwapAmount, staking3Ada.address, {
-        value: inputAmount,
-      });
-    expect(await staking3Ada.stakes(user1.address)).to.be.gt(
-      utils.parseEther('0.08')
-    );
-  });
-
-  it('should fail staking into non staking contract', async () => {
-    const inputAmount = utils.parseEther('0.01');
-    const minSwapAmount = utils.parseEther('0.001');
-    await coin1.mint(user1.address, inputAmount);
-    await coin1.connect(user1).approve(zap.address, inputAmount);
-
-    // router is not a staking contract
-    await expect(
-      zap
-        .connect(user1)
-        .zapIn(
-          pair12.address,
-          minSwapAmount,
-          coin1.address,
-          inputAmount,
-          router.address
-        )
-    ).to.be.reverted;
-  });
-
-  it('should fail staking into staking contract for different token', async () => {
-    const inputAmount = utils.parseEther('0.01');
-    const minSwapAmount = utils.parseEther('0.001');
-    await coin1.mint(user1.address, inputAmount);
-    await coin1.connect(user1).approve(zap.address, inputAmount);
-
-    await expect(
-      zap
-        .connect(user1)
-        .zapIn(
-          pair12.address,
-          minSwapAmount,
-          coin1.address,
-          inputAmount,
-          staking3Ada.address
-        )
-    ).to.be.revertedWith(
-      "VM Exception while processing transaction: reverted with reason string 'Zap: staking contract for wrong token'"
-    );
-  });
-
-  it('should estimateSwap correctly', async () => {
-    const inputAmount = utils.parseEther('0.01');
-    const minSwapAmount = utils.parseEther('0.009'); // half the input, times two for pool price, minus some slippage
-    await coin1.mint(user1.address, inputAmount);
-    await coin1.connect(user1).approve(zap.address, inputAmount);
-
-    const estimation = await zap
-      .connect(user1)
-      .estimateSwap(pair12.address, coin1.address, inputAmount);
-
-    await expect(
-      zap
-        .connect(user1)
-        .zapIn(
-          pair12.address,
-          minSwapAmount,
-          coin1.address,
-          inputAmount,
-          ethers.constants.AddressZero
-        )
-    )
-      .to.emit(pair12, 'Swap')
-      .withArgs(
-        router.address,
-        estimation['swapAmountIn'],
-        0,
-        0,
-        estimation['swapAmountOut'],
-        zap.address
-      );
-  });
-
-  it('should fail to estimateSwap on low liquidity', async () => {
-    const coinFactory = await ethers.getContractFactory('MockCoin', deployer);
-    const coin4 = (await coinFactory.deploy('Four', '4')) as MockCoin;
-    const lowLiquidityA = utils.parseEther('0.000001');
-    const lowLiquidityB = utils.parseEther('0.00000000099');
-    await coin1.mint(deployer.address, lowLiquidityA);
-    await coin4.mint(deployer.address, lowLiquidityB);
-    await coin1.connect(deployer).approve(router.address, lowLiquidityA);
-    await coin4.connect(deployer).approve(router.address, lowLiquidityB);
     await router
-      .connect(deployer)
+      .connect(user1)
+      .swapExactTokensForTokens(
+        swapAmount,
+        0,
+        path,
+        user1.address,
+        1000000000000000
+      );
+
+    // now the user1 also makes a liquidity addition to trigger the transfer of fee LT from the pool to the collector contract
+    const LTAmount1 = utils.parseEther('20');
+    await coin1.mint(user1.address, LTAmount1);
+    await coin1.connect(user1).approve(router.address, LTAmount1);
+    const LTAmount2 = utils.parseEther('20');
+    await coin2.mint(user1.address, LTAmount2);
+    await coin2.connect(user1).approve(router.address, LTAmount2);
+
+    const collectorLTBalanceBefore = await twoTokenPair.balanceOf(
+      collector.address
+    );
+
+    await router
+      .connect(user1)
       .addLiquidity(
         coin1.address,
-        coin4.address,
-        lowLiquidityA,
-        lowLiquidityB,
+        coin2.address,
+        LTAmount1,
+        LTAmount2,
+        0,
+        0,
+        user1.address,
+        1000000000000000
+      );
+
+    const collectorLTBalanceAfter = await twoTokenPair.balanceOf(
+      collector.address
+    );
+    // fee LT should be transferred to the collector contract
+    expect(await collectorLTBalanceAfter).to.be.gt(collectorLTBalanceBefore);
+
+    // now we buy back protocol token using the LT of coin1 and coin2 inside the collector
+    const stakingContractPTBalanceBefore = await protocolCoin.balanceOf(staking.address);
+
+    await expect(collector.connect(user1).convert(coin1.address, coin2.address)).to.be.revertedWith("Ownable: caller is not the owner");
+
+    await collector.connect(deployer).convert(coin1.address, coin2.address);
+
+    const stakingContractPTBalanceAfter = await protocolCoin.balanceOf(staking.address);
+
+    // staking contract should receive the protocol token
+    expect(stakingContractPTBalanceAfter).to.be.gt(stakingContractPTBalanceBefore);
+
+    // there should be no protocol token in the collector contract
+    expect(await protocolCoin.balanceOf(collector.address)).to.be.eq(0);
+
+  });
+  it('should collect fee from the PT-wADA pair', async () => {
+    // make a swap from PT to wADA
+    const swapAmount = utils.parseEther('10');
+    await protocolCoin.mint(user1.address, swapAmount);
+    await protocolCoin.connect(user1).approve(router.address, swapAmount);
+
+    const path = [protocolCoin.address, wADA.address];
+    await router
+      .connect(user1)
+      .swapExactTokensForTokens(
+        swapAmount,
+        0,
+        path,
+        user1.address,
+        1000000000000000
+      );
+    // now the user1 also makes a liquidity addition to trigger the transfer of fee LT from the pool to the collector contract
+    const LTAmount1 = utils.parseEther('20');
+    await protocolCoin.mint(user1.address, LTAmount1);
+    await protocolCoin.connect(user1).approve(router.address, LTAmount1);
+    const LTAmount2 = utils.parseEther('20');
+
+    const collectorLTBalanceBefore = await PTWAdaPair.balanceOf(
+      collector.address
+    );
+
+    await router
+      .connect(user1)
+      .addLiquidityADA(
+        protocolCoin.address,
+        LTAmount1,
         0,
         0,
         deployer.address,
+        1000000000000000,
+        { value: LTAmount2 }
+      );
+
+    const collectorLTBalanceAfter = await PTWAdaPair.balanceOf(
+      collector.address
+    );
+    // fee LT should be transferred to the collector contract
+    expect(await collectorLTBalanceAfter).to.be.gt(collectorLTBalanceBefore);
+
+    // now we buy back protocol token using the LT of coin1 and coin2 inside the collector
+    const stakingContractPTBalanceBefore = await protocolCoin.balanceOf(staking.address);
+
+    await collector.connect(deployer).convert(protocolCoin.address, wADA.address);
+
+    const stakingContractPTBalanceAfter = await protocolCoin.balanceOf(staking.address);
+
+    // staking contract should receive the protocol token
+    expect(await stakingContractPTBalanceAfter).to.be.gt(stakingContractPTBalanceBefore);
+
+    // there should be no protocol token in the collector contract
+    expect(await protocolCoin.balanceOf(collector.address)).to.be.eq(0);
+
+  });
+
+  it('should collect fee from the token-wADA pair', async () => {
+    // make a swap from token to wADA
+    const swapAmount = utils.parseEther('10');
+    await coin1.mint(user1.address, swapAmount);
+    await coin1.connect(user1).approve(router.address, swapAmount);
+
+    const path = [coin1.address, wADA.address];
+    await router
+      .connect(user1)
+      .swapExactTokensForTokens(
+        swapAmount,
+        0,
+        path,
+        user1.address,
         1000000000000000
       );
-    const addressPair14 = await factory.getPair(coin1.address, coin4.address);
+    // now the user1 also makes a liquidity addition to trigger the transfer of fee LT from the pool to the collector contract
+    const LTAmount1 = utils.parseEther('20');
+    await coin1.mint(user1.address, LTAmount1);
+    await coin1.connect(user1).approve(router.address, LTAmount1);
+    const LTAmount2 = utils.parseEther('20');
 
-    const inputAmount = utils.parseEther('0.0001');
-    await coin1.mint(user1.address, inputAmount);
-    await coin1.connect(user1).approve(zap.address, inputAmount);
+    const collectorLTBalanceBefore = await tokenWAdaPair.balanceOf(
+      collector.address
+    );
 
-    await expect(
-      zap.connect(user1).estimateSwap(addressPair14, coin1.address, inputAmount)
-    ).to.be.revertedWith('Zap: Liquidity pair reserves too low');
+    await router
+      .connect(user1)
+      .addLiquidityADA(
+        coin1.address,
+        LTAmount1,
+        0,
+        0,
+        deployer.address,
+        1000000000000000,
+        { value: LTAmount2 }
+      );
+
+    const collectorLTBalanceAfter = await tokenWAdaPair.balanceOf(
+      collector.address
+    );
+    // fee LT should be transferred to the collector contract
+    expect(await collectorLTBalanceAfter).to.be.gt(collectorLTBalanceBefore);
+
+    // now we buy back protocol token using the LT of coin1 and coin2 inside the collector
+    const stakingContractPTBalanceBefore = await protocolCoin.balanceOf(staking.address);
+
+    await collector.connect(deployer).convert(coin1.address, wADA.address);
+
+    const stakingContractPTBalanceAfter = await protocolCoin.balanceOf(staking.address);
+
+    // staking contract should receive the protocol token
+    expect(await stakingContractPTBalanceAfter).to.be.gt(stakingContractPTBalanceBefore);
+
+    // there should be no protocol token in the collector contract
+    expect(await protocolCoin.balanceOf(collector.address)).to.be.eq(0);
+
+  });
+
+  it('should collect fee from the token-PT pair', async () => {
+    // make a swap from coin1 to coin2
+    const swapAmount = utils.parseEther('10');
+    await coin2.mint(user1.address, swapAmount);
+    await coin2.connect(user1).approve(router.address, swapAmount);
+
+    const path = [coin2.address, protocolCoin.address];
+
+    await router
+      .connect(user1)
+      .swapExactTokensForTokens(
+        swapAmount,
+        0,
+        path,
+        user1.address,
+        1000000000000000
+      );
+
+    // now the user1 also makes a liquidity addition to trigger the transfer of fee LT from the pool to the collector contract
+    const LTAmount1 = utils.parseEther('20');
+    await coin2.mint(user1.address, LTAmount1);
+    await coin2.connect(user1).approve(router.address, LTAmount1);
+    const LTAmount2 = utils.parseEther('20');
+    await protocolCoin.mint(user1.address, LTAmount2);
+    await protocolCoin.connect(user1).approve(router.address, LTAmount2);
+
+    const collectorLTBalanceBefore = await tokenPTPair.balanceOf(
+      collector.address
+    );
+
+    await router
+      .connect(user1)
+      .addLiquidity(
+        coin2.address,
+        protocolCoin.address,
+        LTAmount1,
+        LTAmount2,
+        0,
+        0,
+        user1.address,
+        1000000000000000
+      );
+
+    const collectorLTBalanceAfter = await tokenPTPair.balanceOf(
+      collector.address
+    );
+    // fee LT should be transferred to the collector contract
+    expect(await collectorLTBalanceAfter).to.be.gt(collectorLTBalanceBefore);
+
+    // now we buy back protocol token using the LT of coin1 and coin2 inside the collector
+    const stakingContractPTBalanceBefore = await protocolCoin.balanceOf(staking.address);
+
+    await collector.connect(deployer).convert(protocolCoin.address, coin2.address);
+
+    const stakingContractPTBalanceAfter = await protocolCoin.balanceOf(staking.address);
+
+    // staking contract should receive the protocol token
+    expect(stakingContractPTBalanceAfter).to.be.gt(stakingContractPTBalanceBefore);
+
+    // there should be no protocol token in the collector contract
+    expect(await protocolCoin.balanceOf(collector.address)).to.be.eq(0);
+
   });
 });
