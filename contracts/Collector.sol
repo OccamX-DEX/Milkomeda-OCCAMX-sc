@@ -236,7 +236,7 @@ contract Collector is Ownable {
         returns (uint256 amountOut)
     {
         // X1 - X5: OK
-        amountOut = _swap(token, PToken, amountIn, address(this));
+        amountOut = _swap(token, PToken, amountIn, stakingContract);
     }
 }
 
