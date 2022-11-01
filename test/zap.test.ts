@@ -218,8 +218,15 @@ describe('Zap', () => {
 
 		const estimation = await zap.connect(user1).estimateSwap(pair12.address, coin1.address, inputAmount);
 
+		// to check the event, we need the order of the tokens to be correct
+		const order = coin1.address < coin2.address;
+		const tokenAIn = order ? estimation["swapAmountIn"] : 0;
+		const tokenBIn = order ? 0 : estimation["swapAmountIn"];
+		const tokenAOut = order ? 0 : estimation["swapAmountOut"];
+		const tokenBOut = order ? estimation["swapAmountOut"] : 0;
+
 		await expect(zap.connect(user1).zapIn(pair12.address, minSwapAmount, coin1.address, inputAmount, ethers.constants.AddressZero))
-			.to.emit(pair12, "Swap").withArgs(router.address, estimation["swapAmountIn"], 0, 0, estimation["swapAmountOut"], zap.address);
+			.to.emit(pair12, "Swap").withArgs(router.address, tokenAIn, tokenBIn, tokenAOut, tokenBOut, zap.address);
 	});
 
 	it('should fail to estimateSwap on low liquidity', async () => {
