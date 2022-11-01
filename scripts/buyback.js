@@ -4,14 +4,12 @@ const {sleep} = require("./helpers");
 
 async function main() {
 
-    let collectorAddress, stakingAddress;
+    let collectorAddress;
 
     if (hre.network.name == "milkomedaTestnet") {
         collectorAddress = "0x92A76FE5e70F4C9d44F6BD126ce61BFFB6563320";
-        stakingAddress = "0xA2e79552BaeBCD00DF15521D60BF39C6dEBEA5AB";
     } else if (hre.network.name == "milkomedaMainnet") {
         collectorAddress = "0x2324797D029E7192e62a4e758e8Ca3Aae74BF1EB";
-        stakingAddress = "0xB1B481A03745C516A23E77B8D8934b13079C7b5c";
     } else {
         throw new Error(`network ${hre.network.name} is unsupported`);
     }
@@ -22,7 +20,7 @@ async function main() {
     const [deployer] = await hre.ethers.getSigners();
 
     console.log(
-    "Deploying contracts with the account:",
+    "Managing contracts with the account:",
     deployer.address
     );
     
@@ -30,18 +28,19 @@ async function main() {
 
     const CollectorInstance = await ethers.getContractAt("Collector", collectorAddress);
 
-    await CollectorInstance.setStakingContract(stakingAddress)
-
-    await sleep(15);
-
-    console.log(`staking contract in collector is ${await CollectorInstance.stakingContract()}`);
-    console.log(`protocol token in collector is ${await CollectorInstance.PToken()}`);
+    const poolsToBB = ["0xA4AD48A0b25460d31aE12291620fB063E1A6Db13"];
     
-    /* await sleep(120);
-    await hre.run("verify:verify", {
-        address: TokenInstance.address,
-        constructorArguments: [],
-    }); */
+    for (const poolAddress of poolsToBB) {
+        const poolInstance = await ethers.getContractAt("Pair", poolAddress);
+        const token0 = await poolInstance.token0();
+        const token1 = await poolInstance.token1();
+        const LTBalance = await poolInstance.balanceOf(CollectorInstance.address);
+        console.log(`working with pool ${poolAddress} and tokens ${token0}, ${token1}`);
+        console.log(`collector LT balance is ${LTBalance}`);
+        await CollectorInstance.convert(token0, token1, {gasLimit: 500000});
+        console.log(`performing buyback`);
+        await sleep(15);
+    }
     
 
 }

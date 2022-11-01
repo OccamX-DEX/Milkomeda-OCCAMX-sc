@@ -32,6 +32,8 @@ async function main() {
         token1Address = "0xbB69A30ADA91380a63cffd51e9C02FabCd160290";
         token2Address = "0x177c13E674b379fFad990bd1424926EeFab9300b";
         wADAAddress = "0xbB69A30ADA91380a63cffd51e9C02FabCd160290";
+    } else {
+        throw new Error(`network ${hre.network.name} is unsupported`);
     }
 
 

@@ -13,6 +13,8 @@ async function main() {
         routerAddress = "0x472F4fEb99AC98098657f7341F4e04F28DCAD367";
         tokenAddress = "0xE41d2489571d322189246DaFA5ebDe1F4699F498";
         token2Address = "0x914f984D8766b9240185880c66D9547F62bEA9F2"
+    } else {
+        throw new Error(`network ${hre.network.name} is unsupported`);
     }
 
     const tokenAmount = utils.parseEther("30000");

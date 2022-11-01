@@ -12,7 +12,9 @@ async function main() {
     } else if (hre.network.name == "milkomedaMainnet") {
         factoryAddress = "0x2ef06A90b0E7Ae3ae508e83Ea6628a3987945460";
         WADAAddress = "0xAE83571000aF4499798d1e3b0fA0070EB3A3E3F9";
-    } 
+    } else {
+        throw new Error(`network ${hre.network.name} is unsupported`);
+    }
 
 
     console.log(`Operating in network ${hre.network.name}`)

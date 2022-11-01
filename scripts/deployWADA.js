@@ -15,7 +15,7 @@ async function main() {
     } else {
         console.log("No parameters set for network", hre.network.name);
         return;
-    }
+    } 
 
     const [deployer] = await hre.ethers.getSigners();
 

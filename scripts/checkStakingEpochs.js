@@ -68,6 +68,8 @@ async function main() {
             console.log(`check block explorer: https://explorer-mainnet-cardano-evm.c1.milkomeda.com/address/${stakingAddress}/read-proxy`)
             console.log(`------------------------`)
         }
+    } else {
+        throw new Error(`network ${hre.network.name} is unsupported`);
     }
 }
 

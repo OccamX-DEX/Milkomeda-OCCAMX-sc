@@ -47,6 +47,8 @@ async function main() {
         firstCheckPoint = 1651082400;
         rewardPerSecond = utils.parseEther("0.004571119302556900");
         feeBurn = false;
+    } else {
+        throw new Error(`network ${hre.network.name} is unsupported`);
     }
         
 

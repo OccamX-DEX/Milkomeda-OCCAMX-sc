@@ -19,6 +19,8 @@ async function main() {
         factoryAddress = "0x2ef06A90b0E7Ae3ae508e83Ea6628a3987945460";
         collectorAddress = "0x2324797D029E7192e62a4e758e8Ca3Aae74BF1EB";
         zeroAddress = "0x0000000000000000000000000000000000000000";
+    } else {
+        throw new Error(`network ${hre.network.name} is unsupported`);
     }
 
     console.log(
