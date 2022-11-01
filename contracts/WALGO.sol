@@ -19,7 +19,7 @@
 
 pragma solidity ^0.4.18;
 
-contract WETH9 {
+contract WALGO {
     string public name     = "Wrapped Algo";
     string public symbol   = "WALGO";
     uint8  public decimals = 18;
