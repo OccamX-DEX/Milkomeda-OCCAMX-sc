@@ -1,6 +1,4 @@
 // SPDX-License-Identifier: MIT
-
-// P1 - P3: OK
 pragma solidity ^0.6.0;
 
 import "./libraries/SafeMath.sol";
@@ -152,13 +150,13 @@ contract Collector is Ownable {
             IERC20(PToken).safeTransfer(stakingContract, amount1);
             PTokenOut = _toPToken(token0, amount0).add(amount1);
         } else if (token0 == wada) {
-            // eg. ETH - USDC
+            // eg. ADA - USDC
             PTokenOut = _toPToken(
                 wada,
                 _swap(token1, wada, amount1, address(this)).add(amount0)
             );
         } else if (token1 == wada) {
-            // eg. USDT - ETH
+            // eg. USDT - ADA
             PTokenOut = _toPToken(
                 wada,
                 _swap(token0, wada, amount0, address(this)).add(amount1)
@@ -194,22 +192,16 @@ contract Collector is Ownable {
         }
     }
 
-    // F1 - F10: OK
-    // C1 - C24: OK
-    // All safeTransfer, swap: X1 - X5: OK
     function _swap(
         address fromToken,
         address toToken,
         uint256 amountIn,
         address to
     ) internal returns (uint256 amountOut) {
-        // Checks
-        // X1 - X5: OK
+
         IPair pair = IPair(factory.getPair(fromToken, toToken));
         require(address(pair) != address(0), "Collector: Cannot convert");
 
-        // Interactions
-        // X1 - X5: OK
         (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
         uint256 amountInWithFee = amountIn.mul(997);
         if (fromToken == pair.token0()) {
@@ -229,13 +221,10 @@ contract Collector is Ownable {
         }
     }
 
-    // F1 - F10: OK
-    // C1 - C24: OK
     function _toPToken(address token, uint256 amountIn)
         internal
         returns (uint256 amountOut)
     {
-        // X1 - X5: OK
         amountOut = _swap(token, PToken, amountIn, stakingContract);
     }
 }
