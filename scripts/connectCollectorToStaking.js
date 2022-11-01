@@ -12,7 +12,9 @@ async function main() {
     } else if (hre.network.name == "milkomedaMainnet") {
         collectorAddress = "0x2324797D029E7192e62a4e758e8Ca3Aae74BF1EB";
         stakingAddress = "0xB1B481A03745C516A23E77B8D8934b13079C7b5c";
-    } 
+    } else {
+        throw new Error(`network ${hre.network.name} is unsupported`);
+    }
 
 
     console.log(`Operating in network ${hre.network.name}`)

@@ -19,6 +19,8 @@ async function main() {
         holder = "0x394195f788541166DFf932a828455a8a940d75d4";
     } else if (hre.network.name == "algoMilkomedaTestnet") {
         holder = deployer.address;
+    } else {
+        throw new Error(`network ${hre.network.name} is unsupported`);
     }
 
     console.log(
